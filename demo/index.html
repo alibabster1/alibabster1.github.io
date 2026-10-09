@@ -116,6 +116,6 @@ $('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
  const rows=[['scheduled_for','title','hook','caption','hashtags'],...queue.map(x=>[x.when,x.title,x.hook,x.caption,x.tags.join(' ')])];
  const b=new Blob([rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='posting-schedule.csv';a.click()};
 fetch(API+'/health').then(r=>r.ok?r.json():null).then(j=>{live=!!(j&&j.ai)}).catch(()=>{}).finally(()=>{
- $('banner').innerHTML=live?'<b>Live:</b> research, clip plan, edit plan and post copy are written by Claude (Haiku 5.5) through our backend. Each visitor gets a few plans per hour.':'<b>Sample mode:</b> the live AI backend is not reachable from here, so this page shows a pre-written sample plan.';
+ $('banner').innerHTML=live?'<b>Live:</b> research, clip plan, edit plan and post copy are written by Claude (Haiku 5.5) through our backend.':'<b>Sample mode:</b> the live AI backend is not reachable from here, so this page shows a pre-written sample plan.';
  renderQueue()});
 </script></body></html>
