@@ -37,6 +37,7 @@ const SAMPLES=[
  {hook:"Your morning sets your whole day.",caption:"Five minutes. No phone. Just water, a stretch and three goals written down. Try it tomorrow and tell us what changes.",tags:["#morningroutine","#habits","#selfimprovement","#reels","#mindset"]},
  {hook:"Stop scrolling, start finishing.",caption:"Most of us do not lack ideas, we lack a system. Here is one simple way to turn an idea into a posted video this week.",tags:["#creatortips","#contentcreation","#productivity","#shorts","#focus"]},
  {hook:"One small habit beats ten big plans.",caption:"Consistency is built in tiny repeatable steps. Pick one, repeat it for seven days, then add the next.",tags:["#consistency","#growth","#dailyhabits","#motivation","#reels"]}];
+const API='https://tcm-captions.agentali1232010.workers.dev';
 let live=false,queue=[];
 try{queue=JSON.parse(localStorage.getItem('tcm_queue')||'[]')}catch(e){}
 const $=id=>document.getElementById(id);
@@ -49,8 +50,8 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 function render(){queue.sort((a,b)=>a.when<b.when?-1:1);
  $('q').innerHTML=queue.length?queue.map((x,i)=>`<tr><td class="when">${fmt(x.when)}</td><td><b>${esc(x.title)}</b></td><td>${esc(x.hook)}</td><td>${esc(x.caption)}</td><td class="tags">${esc(x.tags.join(' '))}</td><td><button class="rm" data-i="${i}" aria-label="Remove ${esc(x.title)}">Remove</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Queue is empty. Add a video above.</td></tr>';}
 async function generate(title,desc){
- if(live){const r=await fetch('api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,desc})});
-  if(r.ok)return await r.json();throw new Error('AI request failed ('+r.status+')')}
+ if(live){const r=await fetch(API+'/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,desc})});
+  if(r.ok)return await r.json();let m='AI request failed';try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}
  return SAMPLES[queue.length%SAMPLES.length]}
 $('go').onclick=async()=>{const title=$('title').value.trim(),desc=$('desc').value.trim();
  if(!title){$('status').textContent='Add a title first.';return}
@@ -62,6 +63,6 @@ $('clear').onclick=()=>{queue=[];save();render()};
 $('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
  const rows=[['scheduled_for','title','hook','caption','hashtags'],...queue.map(x=>[x.when,x.title,x.hook,x.caption,x.tags.join(' ')])];
  const b=new Blob([rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='posting-queue.csv';a.click()};
-fetch('api/health').then(r=>r.ok?r.json():null).then(j=>{live=!!(j&&j.ai);}).catch(()=>{}).finally(()=>{
- $('banner').innerHTML=live?'<b>Live mode:</b> captions are written by Claude (Haiku 5.5) through our backend.':'<b>Sample mode:</b> this public page uses pre-written example text so no keys are exposed. The same interface runs against Claude when the backend is started with an API key. Publishing to platforms is not built yet.';render()});
+fetch(API+'/health').then(r=>r.ok?r.json():null).then(j=>{live=!!(j&&j.ai);}).catch(()=>{}).finally(()=>{
+ $('banner').innerHTML=live?'<b>Live mode:</b> captions are written by Claude (Haiku 5.5) through our backend. Each visitor gets a few tries per hour.':'<b>Sample mode:</b> this public page uses pre-written example text so no keys are exposed. The same interface runs against Claude when the backend is started with an API key. Publishing to platforms is not built yet.';render()});
 </script></body></html>
