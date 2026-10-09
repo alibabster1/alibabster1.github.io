@@ -1,0 +1,67 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Take Control Mindset | Posting Queue Prototype</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f5f4ed;color:#152321;font-family:Arial,Helvetica,sans-serif}
+main{max-width:1000px;margin:auto;padding:28px 24px 60px}a{color:inherit}
+.top{display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #d8dcd0;padding-bottom:16px}
+.brand{font-weight:800;text-decoration:none;letter-spacing:-.5px}
+.banner{background:#e4ead7;border-radius:10px;padding:12px 16px;margin:20px 0;font-size:14px;line-height:1.5}
+h1{font-size:34px;letter-spacing:-1.5px;margin:10px 0 6px}p.lead{color:#4c5d55;line-height:1.6;margin:0 0 22px}
+.card{background:#fff;border:1px solid #d8dcd0;border-radius:14px;padding:20px;margin-bottom:22px}
+label{display:block;font-size:12px;font-weight:700;letter-spacing:1px;text-transform:uppercase;margin:12px 0 6px}
+input,textarea{width:100%;padding:12px;border:1px solid #c9cfc0;border-radius:8px;font:inherit;background:#fbfbf7}
+button{background:#152321;color:#fff;border:0;border-radius:8px;padding:12px 18px;font-weight:700;cursor:pointer;font:inherit;font-weight:700}
+button.ghost{background:transparent;color:#152321;border:1px solid #152321}button:disabled{opacity:.5;cursor:wait}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #657f44;outline-offset:2px}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-top:16px}
+table{width:100%;border-collapse:collapse;font-size:14px}th{text-align:left;font-size:12px;letter-spacing:1px;text-transform:uppercase;padding:8px;border-bottom:2px solid #152321}
+td{padding:12px 8px;border-bottom:1px solid #e3e6dc;vertical-align:top;line-height:1.5}.tags{color:#657f44;font-weight:700}
+.when{white-space:nowrap;font-weight:700}.empty{color:#657468;padding:18px 8px}.rm{background:none;color:#a33;padding:4px 8px;font-size:13px}
+.scroll{overflow-x:auto}
+</style></head><body><main>
+<div class="top"><a class="brand" href="../">TAKE CONTROL MINDSET</a><span style="font-size:13px">Prototype v0.1</span></div>
+<div id="banner" class="banner"></div>
+<h1>Posting queue</h1>
+<p class="lead">Describe a video. The prototype writes a hook, caption and hashtags, then places it in the next open posting slot. Publishing to platforms is the next milestone and is not built yet.</p>
+<div class="card">
+<label for="title">Video title</label><input id="title" placeholder="e.g. 5-minute morning reset routine">
+<label for="desc">What happens in the video?</label><textarea id="desc" rows="3" placeholder="e.g. Quick routine: water, stretch, write 3 goals. Calm, motivating tone."></textarea>
+<div class="row"><button id="go">Generate and add to queue</button><button class="ghost" id="csv">Export queue (CSV)</button><button class="ghost" id="clear">Clear queue</button><span id="status" aria-live="polite" style="font-size:14px"></span></div>
+</div>
+<div class="card scroll"><table><thead><tr><th>Slot</th><th>Video</th><th>Hook</th><th>Caption</th><th>Hashtags</th><th></th></tr></thead><tbody id="q"></tbody></table></div>
+</main>
+<script>
+const SLOTS=[[9,0],[12,30],[18,0],[20,0]];
+const SAMPLES=[
+ {hook:"Your morning sets your whole day.",caption:"Five minutes. No phone. Just water, a stretch and three goals written down. Try it tomorrow and tell us what changes.",tags:["#morningroutine","#habits","#selfimprovement","#reels","#mindset"]},
+ {hook:"Stop scrolling, start finishing.",caption:"Most of us do not lack ideas, we lack a system. Here is one simple way to turn an idea into a posted video this week.",tags:["#creatortips","#contentcreation","#productivity","#shorts","#focus"]},
+ {hook:"One small habit beats ten big plans.",caption:"Consistency is built in tiny repeatable steps. Pick one, repeat it for seven days, then add the next.",tags:["#consistency","#growth","#dailyhabits","#motivation","#reels"]}];
+let live=false,queue=[];
+try{queue=JSON.parse(localStorage.getItem('tcm_queue')||'[]')}catch(e){}
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem('tcm_queue',JSON.stringify(queue))}catch(e){}}
+function nextSlot(){const used=new Set(queue.map(x=>x.when));const d=new Date();d.setSeconds(0,0);
+ for(let day=0;day<60;day++)for(const [h,m] of SLOTS){const t=new Date(d.getFullYear(),d.getMonth(),d.getDate()+day,h,m);
+ if(t>new Date()&&!used.has(t.toISOString()))return t.toISOString()}}
+const fmt=iso=>new Date(iso).toLocaleString([], {weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'});
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+function render(){queue.sort((a,b)=>a.when<b.when?-1:1);
+ $('q').innerHTML=queue.length?queue.map((x,i)=>`<tr><td class="when">${fmt(x.when)}</td><td><b>${esc(x.title)}</b></td><td>${esc(x.hook)}</td><td>${esc(x.caption)}</td><td class="tags">${esc(x.tags.join(' '))}</td><td><button class="rm" data-i="${i}" aria-label="Remove ${esc(x.title)}">Remove</button></td></tr>`).join(''):'<tr><td colspan="6" class="empty">Queue is empty. Add a video above.</td></tr>';}
+async function generate(title,desc){
+ if(live){const r=await fetch('api/generate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({title,desc})});
+  if(r.ok)return await r.json();throw new Error('AI request failed ('+r.status+')')}
+ return SAMPLES[queue.length%SAMPLES.length]}
+$('go').onclick=async()=>{const title=$('title').value.trim(),desc=$('desc').value.trim();
+ if(!title){$('status').textContent='Add a title first.';return}
+ $('go').disabled=true;$('status').textContent=live?'Writing…':'Using sample text…';
+ try{const g=await generate(title,desc);queue.push({title,when:nextSlot(),hook:g.hook,caption:g.caption,tags:g.tags});save();render();$('title').value='';$('desc').value='';$('status').textContent='Added.'}
+ catch(e){$('status').textContent=e.message}finally{$('go').disabled=false}};
+$('q').onclick=e=>{const i=e.target.dataset.i;if(i!==undefined){queue.splice(+i,1);save();render()}};
+$('clear').onclick=()=>{queue=[];save();render()};
+$('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
+ const rows=[['scheduled_for','title','hook','caption','hashtags'],...queue.map(x=>[x.when,x.title,x.hook,x.caption,x.tags.join(' ')])];
+ const b=new Blob([rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='posting-queue.csv';a.click()};
+fetch('api/health').then(r=>r.ok?r.json():null).then(j=>{live=!!(j&&j.ai);}).catch(()=>{}).finally(()=>{
+ $('banner').innerHTML=live?'<b>Live mode:</b> captions are written by Claude (Haiku 5.5) through our backend.':'<b>Sample mode:</b> this public page uses pre-written example text so no keys are exposed. The same interface runs against Claude when the backend is started with an API key. Publishing to platforms is not built yet.';render()});
+</script></body></html>
