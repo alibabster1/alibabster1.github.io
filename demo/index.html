@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Take Control Mindset | Prototype</title>
-<meta name="description" content="Prototype of Take Control Mindset: one idea in, a researched video plan, edit plan and scheduled post out.">
+<meta name="description" content="Prototype of Take Control Mindset: one idea in, a topic plan, edit plan and local posting schedule out.">
 <style>
 *{box-sizing:border-box}body{margin:0;background:#f5f4ed;color:#152321;font-family:Arial,Helvetica,sans-serif}
 main{max-width:1060px;margin:auto;padding:28px 24px 64px}a{color:inherit}
@@ -33,14 +33,14 @@ td{padding:10px 8px;border-bottom:1px solid #e3e6dc;vertical-align:top;line-heig
 @media(max-width:820px){.steps{grid-template-columns:1fr 1fr}.grid2,.formrow{grid-template-columns:1fr}}
 </style></head><body><main>
 <div class="top"><a class="brand" href="../">TAKE CONTROL MINDSET</a><span class="ver">Prototype v0.2</span></div>
-<div id="banner" class="banner">Checking whether the live AI backend is available...</div>
+<div id="banner" class="banner">Checking whether the backend is reachable...</div>
 
 <h1>From idea to posted video</h1>
-<p class="lead">Type one video idea. The prototype researches it, plans which clips to find, writes a beat-by-beat edit plan, drafts the post, and puts it on a posting schedule. The labels below show exactly what works today and what we are still building.</p>
+<p class="lead">Type one video idea. The prototype drafts talking points, suggests clip search queries, writes a beat-by-beat edit plan and drafts post copy for a local posting schedule. It does not retrieve external sources or verify facts. The labels below show exactly what works today and what we are still building.</p>
 
 <ol class="steps" aria-label="Pipeline stages and their status">
 <li><b>1. Idea</b><span class="chip live">Live</span><br>You give a topic, notes and a target length.</li>
-<li><b>2. Research</b><span class="chip live">Live</span><br>Claude finds the angle, the talking points, and the claims to fact-check.</li>
+<li><b>2. Topic planning</b><span class="chip live">Live</span><br>Claude drafts an angle, talking points and claims for you to verify.</li>
 <li><b>3. Clips</b><span class="chip live">Search plan live</span><span class="chip dev">Auto clip finding in development</span><br>What footage to look for and what each clip should show.</li>
 <li><b>4. Edit</b><span class="chip live">Edit plan live</span><span class="chip dev">Auto editing in development</span><br>Timed beats with shots, on-screen text and cuts.</li>
 <li><b>5. Post</b><span class="chip live">Scheduling queue live</span><span class="chip dev">Auto publishing in development</span><br>Hook, caption, hashtags and the next open slot.</li>
@@ -58,7 +58,7 @@ td{padding:10px 8px;border-bottom:1px solid #e3e6dc;vertical-align:top;line-heig
 
 <section id="result" aria-live="polite">
 <div class="grid2">
-<div class="card"><h3>2. Research</h3><p class="big" id="r-angle"></p><ul class="clean" id="r-points"></ul><p class="muted" style="margin:12px 0 4px"><b>Fact-check before posting:</b></p><ul class="clean" id="r-verify"></ul></div>
+<div class="card"><h3>2. Topic planning</h3><p class="big" id="r-angle"></p><ul class="clean" id="r-points"></ul><p class="muted" style="margin:12px 0 4px"><b>Fact-check before posting:</b></p><ul class="clean" id="r-verify"></ul></div>
 <div class="card"><h3>3. Clips to find</h3><ul class="clean" id="r-clips"></ul><p class="muted">Today this is a search plan. Next we are building the step that searches footage libraries and the creator's own clips automatically.</p></div>
 </div>
 <div class="card scroll"><h3>4. Edit plan</h3><table><thead><tr><th>Time</th><th>On screen</th><th>Text</th><th>Edit</th></tr></thead><tbody id="r-edit"></tbody></table><p class="muted">Today this is a plan an editor can follow. Automatic rendering from this plan is in development.</p></div>
@@ -106,7 +106,7 @@ async function plan(title,desc,length){
  let m='The AI step failed. Try again.';try{m=(await r.json()).error||m}catch(e){}throw new Error(m)}
 $('go').onclick=async()=>{const title=$('title').value.trim(),desc=$('desc').value.trim(),length=$('len').value;
  if(!title){$('status').textContent='Add an idea first.';$('title').focus();return}
- $('go').disabled=true;$('status').textContent=live?'Claude is researching and planning. This takes about 10 seconds.':'Showing the pre-written sample plan.';
+ $('go').disabled=true;$('status').textContent=live?'Claude is building your production plan...':'Showing the pre-written sample plan.';
  try{const p=await plan(title,desc,length);current={title,...p};showPlan(p);$('status').textContent=live?'Plan ready.':'Sample plan shown (live AI is offline).';$('result').scrollIntoView({behavior:'smooth',block:'start'})}
  catch(e){$('status').textContent=e.message}finally{$('go').disabled=false}};
 $('add').onclick=()=>{if(!current)return;queue.push({title:current.title,when:nextSlot(),hook:current.hook,caption:current.caption,tags:current.tags});save();renderQueue();$('add').disabled=true;$('add').textContent='Scheduled';};
@@ -116,6 +116,6 @@ $('csv').onclick=()=>{const q=s=>'"'+String(s).replace(/"/g,'""')+'"';
  const rows=[['scheduled_for','title','hook','caption','hashtags'],...queue.map(x=>[x.when,x.title,x.hook,x.caption,x.tags.join(' ')])];
  const b=new Blob([rows.map(r=>r.map(q).join(',')).join('\n')],{type:'text/csv'});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='posting-schedule.csv';a.click()};
 fetch(API+'/health').then(r=>r.ok?r.json():null).then(j=>{live=!!(j&&j.ai)}).catch(()=>{}).finally(()=>{
- $('banner').innerHTML=live?'<b>Live:</b> research, clip plan, edit plan and post copy are written by Claude (Haiku 5.5) through our backend.':'<b>Sample mode:</b> the live AI backend is not reachable from here, so this page shows a pre-written sample plan.';
+ $('banner').innerHTML=live?'<b>Backend reachable:</b> build a plan to try Claude (Haiku 5.5). It drafts talking points, clip queries, edit instructions and post copy.':'<b>Sample mode:</b> the live AI backend is not reachable from here, so this page shows a pre-written sample plan.';
  renderQueue()});
 </script></body></html>
